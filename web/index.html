@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFR - Distributed File Replicator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .status-running {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-stopped {
+            background: #ef4444;
+            color: white;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: bold;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .log-line {
+            margin: 5px 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .peer-list {
+            list-style: none;
+        }
+
+        .peer-item {
+            padding: 10px;
+            background: #f3f4f6;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .peer-icon {
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📁 Distributed File Replicator</h1>
+            <p class="subtitle">Interface de supervision et de contrôle</p>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2>État du système</h2>
+                <div id="status-info">
+                    <div class="loading">Chargement...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Contrôle du démon</h2>
+                <div class="control-buttons">
+                    <button class="btn btn-success" onclick="startDaemon()">▶ Démarrer</button>
+                    <button class="btn btn-danger" onclick="stopDaemon()">⏹ Arrêter</button>
+                    <button class="btn btn-warning" onclick="restartDaemon()">🔄 Redémarrer</button>
+                </div>
+                <div id="control-message" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Nœuds pairs</h2>
+                <div id="peers-list">
+                    <div class="loading">Chargement...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Statistiques</h2>
+                <div id="stats-info">
+                    <div class="loading">Chargement...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Journaux d'événements</h2>
+            <div class="log-container" id="logs-container">
+                <div class="loading">Chargement des logs...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                let html = '';
+                
+                if (data.error) {
+                    html = `<div class="error">Erreur: ${data.error}</div>`;
+                } else {
+                    const status = data.status === 'running' ? 'running' : 'stopped';
+                    html = `
+                        <span class="status-badge status-${status}">
+                            ${status === 'running' ? '🟢 En cours' : '🔴 Arrêté'}
+                        </span>
+                        <div class="info-row">
+                            <span class="info-label">Nœud ID:</span>
+                            <span class="info-value">${data.node_id || 'N/A'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Répertoire surveillé:</span>
+                            <span class="info-value">${data.watch_dir || 'N/A'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Port réseau:</span>
+                            <span class="info-value">${data.network_port || 'N/A'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Nombre de pairs:</span>
+                            <span class="info-value">${data.peer_count || 0}</span>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('status-info').innerHTML = html;
+            } catch (error) {
+                document.getElementById('status-info').innerHTML = 
+                    `<div class="error">Erreur de connexion: ${error.message}</div>`;
+            }
+        }
+
+        async function fetchPeers() {
+            try {
+                const response = await fetch(`${API_BASE}/api/peers`);
+                const data = await response.json();
+                
+                let html = '';
+                
+                if (data.error) {
+                    html = `<div class="error">Erreur: ${data.error}</div>`;
+                } else if (data.peers && data.peers.length > 0) {
+                    html = '<ul class="peer-list">';
+                    data.peers.forEach(peer => {
+                        html += `
+                            <li class="peer-item">
+                                <span class="peer-icon"></span>
+                                ${peer}
+                            </li>
+                        `;
+                    });
+                    html += '</ul>';
+                } else {
+                    html = '<p style="color: #666;">Aucun pair configuré</p>';
+                }
+                
+                document.getElementById('peers-list').innerHTML = html;
+            } catch (error) {
+                document.getElementById('peers-list').innerHTML = 
+                    `<div class="error">Erreur: ${error.message}</div>`;
+            }
+        }
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch(`${API_BASE}/api/logs?lines=50`);
+                const data = await response.json();
+                
+                let html = '';
+                
+                if (data.error) {
+                    html = `<div class="error">Erreur: ${data.error}</div>`;
+                } else if (data.logs && data.logs.length > 0) {
+                    data.logs.forEach(log => {
+                        if (log.trim()) {
+                            html += `<div class="log-line">${escapeHtml(log)}</div>`;
+                        }
+                    });
+                } else {
+                    html = '<div style="color: #888;">Aucun log disponible</div>';
+                }
+                
+                document.getElementById('logs-container').innerHTML = html;
+                document.getElementById('logs-container').scrollTop = 
+                    document.getElementById('logs-container').scrollHeight;
+            } catch (error) {
+                document.getElementById('logs-container').innerHTML = 
+                    `<div class="error">Erreur: ${error.message}</div>`;
+            }
+        }
+
+        async function fetchStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/stats`);
+                const data = await response.json();
+                
+                let html = '';
+                
+                if (data.error) {
+                    html = `<div class="error">Erreur: ${data.error}</div>`;
+                } else {
+                    html = `
+                        <div class="info-row">
+                            <span class="info-label">Statut démon:</span>
+                            <span class="info-value">${data.daemon_running ? '🟢 Actif' : '🔴 Inactif'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Dernière mise à jour:</span>
+                            <span class="info-value">${new Date(data.timestamp).toLocaleString('fr-FR')}</span>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('stats-info').innerHTML = html;
+            } catch (error) {
+                document.getElementById('stats-info').innerHTML = 
+                    `<div class="error">Erreur: ${error.message}</div>`;
+            }
+        }
+
+        async function startDaemon() {
+            showControlMessage('Démarrage en cours...', 'info');
+            try {
+                const response = await fetch(`${API_BASE}/api/daemon/start`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showControlMessage('✓ Démon démarré avec succès', 'success');
+                    setTimeout(refreshAll, 1000);
+                } else {
+                    showControlMessage('✗ Erreur: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showControlMessage('✗ Erreur: ' + error.message, 'error');
+            }
+        }
+
+        async function stopDaemon() {
+            showControlMessage('Arrêt en cours...', 'info');
+            try {
+                const response = await fetch(`${API_BASE}/api/daemon/stop`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showControlMessage('✓ Démon arrêté avec succès', 'success');
+                    setTimeout(refreshAll, 1000);
+                } else {
+                    showControlMessage('✗ Erreur: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showControlMessage('✗ Erreur: ' + error.message, 'error');
+            }
+        }
+
+        async function restartDaemon() {
+            showControlMessage('Redémarrage en cours...', 'info');
+            try {
+                const response = await fetch(`${API_BASE}/api/daemon/restart`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showControlMessage('✓ Démon redémarré avec succès', 'success');
+                    setTimeout(refreshAll, 1000);
+                } else {
+                    showControlMessage('✗ Erreur: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showControlMessage('✗ Erreur: ' + error.message, 'error');
+            }
+        }
+
+        function showControlMessage(message, type) {
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                info: '#3b82f6'
+            };
+            
+            const el = document.getElementById('control-message');
+            el.innerHTML = `<div style="padding: 10px; background: ${colors[type]}; color: white; border-radius: 5px;">${message}</div>`;
+            
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    el.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function refreshAll() {
+            fetchStatus();
+            fetchPeers();
+            fetchLogs();
+            fetchStats();
+        }
+
+        // Rafraîchissement initial
+        refreshAll();
+
+        // Rafraîchissement automatique toutes les 5 secondes
+        setInterval(refreshAll, 5000);
+    </script>
+</body>
+</html>

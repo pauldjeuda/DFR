@@ -1,0 +1,8 @@
+Package: dfr
+Version: 1.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Djeuda Paul <djeuda@example.com>
+Description: Distributed File Replicator
+ Replication automatique de fichiers sur plusieurs noeuds Debian.
