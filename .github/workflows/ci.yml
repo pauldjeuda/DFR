@@ -116,6 +116,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
       - name: Télécharger le paquet Debian
         uses: actions/download-artifact@v7
         with:
