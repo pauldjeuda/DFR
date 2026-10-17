@@ -7,6 +7,7 @@ override_dh_auto_install:
 	install -D -m 0755 scripts/dfr-ctl debian/dfr/usr/bin/dfr-ctl
 	install -D -m 0755 scripts/dfr-web debian/dfr/usr/bin/dfr-web
 	install -D -m 0755 scripts/setup-ssh.sh debian/dfr/usr/sbin/dfr-setup-ssh
+	install -D -m 0755 scripts/dfr-shell debian/dfr/usr/sbin/dfr-shell
 	install -D -m 0755 scripts/ssh-gate debian/dfr/usr/lib/dfr/ssh-gate
 	install -d -m 0755 debian/dfr/usr/lib/python3/dist-packages/dfr
 	cp -a dfr/*.py dfr/templates dfr/static debian/dfr/usr/lib/python3/dist-packages/dfr/

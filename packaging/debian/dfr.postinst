@@ -3,7 +3,11 @@ set -e
 case "$1" in
   configure)
     if ! getent group dfr >/dev/null; then addgroup --system dfr; fi
-    if ! id dfr >/dev/null 2>&1; then adduser --system --ingroup dfr --home /var/lib/dfr --no-create-home --shell /bin/sh dfr; fi
+    if ! id dfr >/dev/null 2>&1; then
+      adduser --system --ingroup dfr --home /var/lib/dfr --no-create-home --shell /usr/sbin/dfr-shell dfr
+    else
+      usermod --shell /usr/sbin/dfr-shell dfr
+    fi
     install -d -o dfr -g dfr -m 0750 /var/lib/dfr /var/lib/dfr/.ssh /var/log/dfr /srv/dfr/data
     if [ ! -f /var/lib/dfr/.ssh/id_ed25519 ]; then
       su -s /bin/sh dfr -c 'ssh-keygen -q -t ed25519 -N "" -f /var/lib/dfr/.ssh/id_ed25519'

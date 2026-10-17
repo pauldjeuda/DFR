@@ -32,20 +32,22 @@ jobs:
         run: |
           python -m compileall -q dfr tests
           python -m py_compile scripts/ssh-gate
+          node --check dfr/static/app.js
 
       - name: Vérifier les scripts shell
         run: |
           sudo apt-get update
           sudo apt-get install -y shellcheck
           shellcheck scripts/build-deb.sh scripts/install.sh scripts/setup-ssh.sh \
-            scripts/dfrd scripts/dfr-ctl scripts/dfr-web \
+            scripts/dfrd scripts/dfr-ctl scripts/dfr-web scripts/dfr-shell \
+            tests/integration/run-docker.sh tests/integration/node-entrypoint.sh \
             packaging/debian/dfr.postinst packaging/debian/dfr.postrm packaging/debian/dfr.prerm
 
       - name: Linter Python
         run: ruff check dfr tests
 
       - name: Tests unitaires
-        run: pytest -q
+        run: pytest -q --cov=dfr.config --cov=dfr.state --cov-branch --cov-report=term-missing --cov-fail-under=70
 
   package:
     name: Construire et vérifier le paquet Debian 12
@@ -87,12 +89,24 @@ jobs:
               dpkg-deb --info "$package"
               dpkg-deb --contents "$package"
               # Keep the report visible while license and copyright metadata are undecided.
-              lintian "$package" || echo "Lintian report emitted; consult it before distribution."
+              if ! lintian "$package"; then
+                echo "::warning::Lintian a relevé des problèmes. Consultez le rapport; la publication exige des métadonnées de licence et copyright propres."
+              fi
 
               apt-get install -y "./$package"
               test -x /usr/sbin/dfrd
               test -x /usr/bin/dfr-ctl
               test -x /usr/sbin/dfr-setup-ssh
+              test -x /usr/sbin/dfr-shell
+              test "$(getent passwd dfr | cut -d: -f7)" = /usr/sbin/dfr-shell
+              if runuser -u dfr -- /usr/sbin/dfr-shell; then
+                echo "The DFR service account shell unexpectedly opened" >&2
+                exit 1
+              else
+                test "$?" -eq 126
+              fi
+              grep -q "^Restart=on-failure$" /lib/systemd/system/dfr.service
+              grep -q "^Restart=on-failure$" /lib/systemd/system/dfr-web.service
               dfrd --check --config /etc/dfr/dfr.conf
               dfr-ctl --check --config /etc/dfr/dfr.conf
               su -s /bin/sh dfr -c "dfrd --check --config /etc/dfr/dfr.conf && dfr-ctl --check --config /etc/dfr/dfr.conf"
@@ -108,10 +122,36 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  integration:
+    name: Intégration distribuée sur trois nœuds Debian 12
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v7
+
+      - name: Télécharger le paquet Debian
+        uses: actions/download-artifact@v7
+        with:
+          name: dfr-deb-${{ github.sha }}
+          path: build
+
+      - name: Installer Python pour le pilote d'intégration
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Vérifier les prérequis Docker
+        run: docker info
+
+      - name: Exécuter les tests de réplication sur trois nœuds Debian
+        run: bash tests/integration/run-docker.sh
+
   release:
     name: Publier le paquet dans GitHub Releases
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: package
+    needs: [package, integration]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -129,6 +169,14 @@ jobs:
 
       - name: Vérifier l’artefact Debian
         run: test -n "$(find dist -maxdepth 1 -type f -name 'dfr_*.deb' -print -quit)"
+
+      - name: Vérifier les métadonnées de licence avant publication
+        shell: bash
+        run: |
+          if [[ ! -f LICENSE || ! -f packaging/debian/copyright ]]; then
+            echo "::error::Release bloquée: LICENSE et packaging/debian/copyright doivent déclarer une licence et leur titulaire avant toute distribution publique."
+            exit 1
+          fi
 
       - name: Créer ou actualiser la GitHub Release
         env:

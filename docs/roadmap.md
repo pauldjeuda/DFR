@@ -10,12 +10,11 @@
 - API REST Flask, interface web, export JSON/CSV.
 - `ssh-gate`, unités systemd, scripts de paquet Debian, CI et scénarios d'intégration.
 
-## À faire pendant la validation Debian
+## Validation en cours
 
-1. Construire le `.deb` sur Debian 12 et corriger les erreurs de lintian/packaging.
-2. Déployer trois VM, tester le bootstrap, les clés SSH et les scénarios `tests/integration/README.md`.
-3. Traiter les écarts fonctionnels/performance et mesurer les seuils du dossier (§2.2 et §10).
-4. Ajouter les contrôles d'authentification du tableau de bord si une écoute hors localhost est demandée.
-5. Compléter les procédures de mise à niveau, retrait de nœud et récupération, puis publier une version validée.
+- La CI construit, installe et purge le `.deb` dans Debian 12, puis utilise le paquet dans un maillage de trois conteneurs Debian.
+- La matrice [CI et qualification de production](ci-validation.md) suit les fonctionnalités et les scénarios du dossier de référence.
+- La validation en VM des seuils de performance, des pannes système/disque, des mises à niveau et de la reprise systemd reste nécessaire.
+- L'interface est réservée à localhost par défaut ; toute exposition réseau exige un proxy HTTPS authentifié.
 
-Le code constitue une base fonctionnelle de développement ; une version stable ne doit être déclarée qu'après la campagne Debian distribuée et la revue de sécurité.
+Une CI verte valide les scénarios automatisés, mais ne qualifie pas encore à elle seule une version stable ou une installation de production.

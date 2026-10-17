@@ -8,7 +8,7 @@ Rules-Requires-Root: no
 
 Package: dfr
 Architecture: all
-Depends: ${python3:Depends}, ${misc:Depends}, adduser, logrotate, python3-flask, gunicorn, rsync, openssh-client, openssh-server
+Depends: ${python3:Depends}, ${misc:Depends}, adduser, passwd, logrotate, python3-flask, gunicorn, rsync, openssh-client, openssh-server
 Description: Distributed File Replicator
  Réplication pair-à-pair de fichiers pour des nœuds Debian, avec
  supervision locale et transport rsync sur SSH.

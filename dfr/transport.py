@@ -2,13 +2,17 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import shlex
 import subprocess
 import time
 
 
 class Transport:
-    def __init__(self, config, state, logger): self.config, self.state, self.logger = config, state, logger
+    def __init__(self, config, state, logger):
+        self.config, self.state, self.logger = config, state, logger
+        self.last_transfer_bytes = 0
 
     def ssh(self, peer_id: str, command: list[str], timeout=30):
         target = self.config.peers[peer_id]
@@ -38,13 +42,20 @@ class Transport:
         start = time.monotonic()
         for rel, (digest, mtime_ns, _size, _mode) in items.items():
             self.ssh(peer_id, ["begin-apply", rel, digest, str(mtime_ns)])
-        command = ["rsync", "-a", "--partial", "--partial-dir=.dfr/tmp", "--relative", "--from0", "--files-from=-", "--protect-args",
+        command = ["rsync", "-a", "--stats", "--partial", "--partial-dir=.dfr/tmp", "--relative", "--from0", "--files-from=-", "--protect-args",
                    "--exclude=.dfr/", "-e", f"ssh -i {self.config.ssh_key} -o BatchMode=yes -o StrictHostKeyChecking=yes -o ControlMaster=auto -o ControlPersist=60 -o ControlPath=/var/lib/dfr/.ssh/cm-%C",
                    "./", f"{target}:{self.config.root.as_posix()}/"]
         file_list = b"".join(("./" + rel).encode("utf-8", errors="surrogateescape") + b"\0" for rel in items)
-        result = subprocess.run(command, cwd=self.config.root, input=file_list, capture_output=True, timeout=3600, check=False)
+        env = {**os.environ, "LC_ALL": "C"}
+        result = subprocess.run(command, cwd=self.config.root, input=file_list, capture_output=True, timeout=3600, check=False, env=env)
         if result.returncode: raise RuntimeError(result.stderr.strip() or f"rsync en échec ({result.returncode})")
+        output = (result.stdout or b"") + b"\n" + (result.stderr or b"")
+        stats = re.search(rb"Total bytes sent:\s*([0-9,]+)", output)
+        if not stats: raise RuntimeError("statistiques de transfert rsync introuvables")
+        self.last_transfer_bytes = int(stats.group(1).replace(b",", b""))
         elapsed = int((time.monotonic() - start) * 1000)
+        self.logger("info", "sync_batch", "", peer_id, "ok", elapsed, self.last_transfer_bytes,
+                    f"files={len(items)}")
         for rel, (digest, mtime_ns, size, _mode) in items.items():
             try:
                 remote_hash = self.ssh(peer_id, ["hash", rel])

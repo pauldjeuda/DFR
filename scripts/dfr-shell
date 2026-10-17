@@ -1,0 +1,12 @@
+#!/bin/sh
+# SSH invokes the account shell with -c even when authorized_keys forces a command.
+# This shell intentionally ignores the requested command and delegates only to the
+# DFR allowlist gate; interactive and arbitrary command execution are rejected.
+set -eu
+
+if [ "$#" -ne 2 ] || [ "$1" != "-c" ]; then
+  echo "DFR service account has no interactive shell" >&2
+  exit 126
+fi
+
+exec /usr/lib/dfr/ssh-gate
