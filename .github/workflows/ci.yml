@@ -73,7 +73,7 @@ jobs:
               # Keep the report visible while license and copyright metadata are undecided.
               lintian "$package" || echo "Lintian report emitted; consult it before distribution."
 
-              dpkg -i "$package"
+              apt-get install -y "./$package"
               test -x /usr/sbin/dfrd
               test -x /usr/bin/dfr-ctl
               test -x /usr/sbin/dfr-setup-ssh
