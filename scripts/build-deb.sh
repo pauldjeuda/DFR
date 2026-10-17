@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 BUILD_DIR="$ROOT/build/package"
 ARCHIVE="$ROOT/build/source.tar"
 rm -rf "$BUILD_DIR"
