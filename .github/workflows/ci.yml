@@ -62,7 +62,7 @@ jobs:
               export DEBIAN_FRONTEND=noninteractive
               apt-get update
               apt-get install -y --no-install-recommends \
-                debhelper dh-python python3-all python3-flask gunicorn \
+                build-essential debhelper dh-python python3-all python3-flask gunicorn \
                 rsync openssh-client openssh-server lintian
 
               scripts/build-deb.sh
