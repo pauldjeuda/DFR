@@ -63,6 +63,17 @@ Voir [la procédure d'intégration sur trois VM](tests/integration/README.md) et
 
 La pipeline GitHub Actions s'exécute sur chaque push, pull request et déclenchement manuel. Elle compile le Python, exécute les tests et linters, construit le `.deb` dans Debian 12, l'installe dans un conteneur propre, vérifie les commandes et la page web, puis publie le paquet en artefact téléchargeable pour 30 jours. Lintian conserve ses constats dans les journaux de CI pendant que la licence et les mentions de copyright restent à définir ; les tests multi-nœuds restent à lancer sur les trois VM de la procédure d'intégration.
 
+## Publier une release
+
+Pour générer une release GitHub avec son paquet Debian, pousse un tag de version au format `vMAJOR.MINOR.PATCH` après avoir fusionné les changements à publier :
+
+```bash
+git tag -a v0.1.1 -m "DFR 0.1.1"
+git push origin v0.1.1
+```
+
+La CI rejoue les tests et le build Debian sur ce tag. Si tout réussit, elle crée la GitHub Release avec des notes générées et y ajoute `dfr_<version>_all.deb`. Les pushes de branches et les pull requests continuent de publier un artefact de CI pendant 30 jours, sans créer de release.
+
 ## Spécification
 
 - [Dossier de référence](docs/DFR%20%E2%80%93%20Dossier%20de%20r%C3%A9f%C3%A9rence%20pour%20l'%C3%A9quipe%20de%20d%C3%A9veloppement.pdf)
