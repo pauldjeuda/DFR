@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+if [ "$1" = purge ]; then
+  rm -rf /var/lib/dfr /var/log/dfr
+  if getent passwd dfr >/dev/null; then deluser --system dfr || true; fi
+  if getent group dfr >/dev/null; then delgroup --system dfr || true; fi
+fi
+#DEBHELPER#
+deb-systemd-invoke daemon-reload || true
+exit 0

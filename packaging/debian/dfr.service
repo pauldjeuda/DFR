@@ -1,0 +1,22 @@
+[Unit]
+Description=Distributed File Replicator daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dfr
+Group=dfr
+RuntimeDirectory=dfr
+RuntimeDirectoryMode=0770
+ExecStart=/usr/sbin/dfrd --config /etc/dfr/dfr.conf
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/srv/dfr /var/lib/dfr /var/log/dfr /run/dfr
+
+[Install]
+WantedBy=multi-user.target

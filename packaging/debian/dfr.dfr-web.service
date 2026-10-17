@@ -1,0 +1,20 @@
+[Unit]
+Description=DFR local web dashboard
+After=dfr.service
+Requires=dfr.service
+
+[Service]
+Type=simple
+User=dfr
+Group=dfr
+ExecStart=/usr/bin/dfr-web --config /etc/dfr/dfr.conf
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/dfr /var/log/dfr /run/dfr
+
+[Install]
+WantedBy=multi-user.target

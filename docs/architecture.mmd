@@ -1,0 +1,9 @@
+flowchart LR
+  FS[Répertoire surveillé] -->|inotify + debounce| D[Daemon DFR]
+  D <--> DB[(SQLite WAL)]
+  D -->|rsync sur SSH| Pairs[Pairs Debian]
+  Pairs -->|dfr-ctl distant via ssh-gate| D
+  D <--> S[Socket Unix JSON]
+  S <--> API[API Flask]
+  API <--> UI[Tableau de bord web local]
+  D --> J[journald + journal JSON]

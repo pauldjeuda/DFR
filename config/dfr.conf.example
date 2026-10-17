@@ -1,0 +1,26 @@
+[node]
+id = node-a
+root = /srv/dfr/data
+state_db = /var/lib/dfr/state.db
+
+[sync]
+debounce_ms = 1000
+reconcile_interval_s = 300
+max_hash_size_mb = 100
+trash_retention_days = 7
+exclude = *.swp, *.tmp, .~lock.*
+
+[peers]
+# node-b = dfr@192.168.1.12
+# node-c = dfr@192.168.1.13
+
+[ssh]
+key = /var/lib/dfr/.ssh/id_ed25519
+
+[logging]
+level = info
+retention_days = 30
+
+[web]
+bind = 127.0.0.1:8080
+socket = /run/dfr/dfr.sock

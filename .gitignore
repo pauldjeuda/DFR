@@ -1,0 +1,10 @@
+*.swp
+*.tmp
+__pycache__/
+.venv/
+build/
+dist/
+*.deb
+.pytest_cache/
+.ruff_cache/
+*.egg-info/

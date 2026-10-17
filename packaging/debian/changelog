@@ -1,0 +1,5 @@
+dfr (0.1.0) unstable; urgency=medium
+
+  * Première version de développement du démon et de l'interface locale.
+
+ -- Équipe DFR <dfr@example.invalid>  Sat, 17 Oct 2026 12:00:00 +0000

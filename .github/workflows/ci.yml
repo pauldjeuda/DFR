@@ -1,0 +1,93 @@
+name: DFR CI/CD
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Tests, compilation et lint
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v7
+
+      - name: Installer Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Installer les dépendances de développement
+        run: python -m pip install -e ".[test]"
+
+      - name: Compiler le code Python
+        run: |
+          python -m compileall -q dfr tests
+          python -m py_compile scripts/ssh-gate
+
+      - name: Vérifier les scripts shell
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          shellcheck scripts/build-deb.sh scripts/install.sh scripts/setup-ssh.sh \
+            scripts/dfrd scripts/dfr-ctl scripts/dfr-web \
+            packaging/debian/dfr.postinst packaging/debian/dfr.postrm packaging/debian/dfr.prerm
+
+      - name: Linter Python
+        run: ruff check dfr tests
+
+      - name: Tests unitaires
+        run: pytest -q
+
+  package:
+    name: Construire et vérifier le paquet Debian 12
+    needs: quality
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v7
+
+      - name: Construire, installer et inspecter le paquet sous Debian 12
+        shell: bash
+        run: |
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/src" \
+            -w /src \
+            debian:12-slim \
+            bash -eu -o pipefail -c '
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                debhelper dh-python python3-all python3-flask gunicorn \
+                rsync openssh-client openssh-server lintian
+
+              scripts/build-deb.sh
+              package=$(find build -maxdepth 1 -type f -name "dfr_*_all.deb" -print -quit)
+              test -n "$package"
+              dpkg-deb --info "$package"
+              dpkg-deb --contents "$package"
+              # Keep the report visible while license and copyright metadata are undecided.
+              lintian "$package" || echo "Lintian report emitted; consult it before distribution."
+
+              dpkg -i "$package"
+              test -x /usr/sbin/dfrd
+              test -x /usr/bin/dfr-ctl
+              test -x /usr/sbin/dfr-setup-ssh
+              dfrd --check --config /etc/dfr/dfr.conf
+              dfr-ctl --check --config /etc/dfr/dfr.conf
+              su -s /bin/sh dfr -c "dfrd --check --config /etc/dfr/dfr.conf && dfr-ctl --check --config /etc/dfr/dfr.conf"
+              su -s /bin/sh dfr -c "python3 -c \"from dfr.web import create_app; assert create_app().test_client().get(chr(47)).status_code == 200\""
+              dpkg -P dfr
+            '
+
+      - name: Publier le paquet comme artefact
+        uses: actions/upload-artifact@v7
+        with:
+          name: dfr-deb-${{ github.sha }}
+          path: build/*.deb
+          if-no-files-found: error
+          retention-days: 30

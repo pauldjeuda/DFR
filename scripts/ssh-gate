@@ -1,0 +1,44 @@
+#!/usr/bin/python3
+"""Forced-command gate for DFR SSH keys."""
+import os
+import shlex
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "/usr/lib/python3/dist-packages")
+from dfr.config import Config
+
+ROOT = Config.load("/etc/dfr/dfr.conf").root.resolve()
+ALLOWED = {"stat", "hash", "list", "begin-apply", "record", "apply-delete", "apply-rename", "save-conflict", "restore-conflict"}
+
+try:
+    command = shlex.split(os.environ.get("SSH_ORIGINAL_COMMAND", ""), posix=True)
+    if not command:
+        raise ValueError("commande vide")
+    if command[0] in {"dfr-ctl", "/usr/bin/dfr-ctl"}:
+        if len(command) < 3 or command[1] != "--remote-json" or command[2] not in ALLOWED:
+            raise ValueError("commande dfr-ctl refusée")
+        os.execv("/usr/bin/dfr-ctl", ["dfr-ctl", "--remote-json", *command[2:]])
+    if Path(command[0]).name != "rsync" or len(command) < 4 or "--server" not in command:
+        raise ValueError("seul rsync en mode serveur est autorisé")
+    flags = command[1:]
+    if flags[0] != "--server":
+        raise ValueError("mode rsync interdit")
+    if flags[-2] != ".":
+        raise ValueError("arguments rsync non autorisés")
+    remote_path = Path(flags[-1])
+    if ".." in remote_path.parts:
+        raise ValueError("chemin rsync avec .. refusé")
+    raw_path = ROOT / remote_path if not remote_path.is_absolute() else remote_path
+    if raw_path != ROOT:
+        parent = raw_path.parent.resolve()
+        if parent != ROOT and ROOT not in parent.parents:
+            raise ValueError("chemin rsync hors de la racine")
+    if raw_path != ROOT and not raw_path.is_symlink():
+        resolved = raw_path.resolve()
+        if resolved != ROOT and ROOT not in resolved.parents:
+            raise ValueError("chemin rsync hors de la racine")
+    os.execv("/usr/bin/rsync", ["rsync", *command[1:]])
+except Exception as exc:
+    print(f"DFR SSH gate: {exc}", file=sys.stderr)
+    raise SystemExit(126)
