@@ -11,6 +11,8 @@ PUBKEY=$(awk '{print $1" "$2}' "$PUB")
 case "$PUBKEY" in ssh-ed25519\ *) ;; *) echo "La clé doit être ed25519" >&2; exit 1;; esac
 for peer in "$@"; do
   printf '%s\n' "Ajout de la clé DFR sur $peer (accès administrateur requis)"
+  # The public key is intentionally expanded locally into the remote authorized_keys command.
+  # shellcheck disable=SC2029
   ssh "$peer" "sudo install -d -o dfr -g dfr -m 0700 /var/lib/dfr/.ssh; printf '%s\\n' 'restrict,command=\"/usr/lib/dfr/ssh-gate\" $PUBKEY dfr-peer-key' | sudo tee -a /var/lib/dfr/.ssh/authorized_keys >/dev/null; sudo chown dfr:dfr /var/lib/dfr/.ssh/authorized_keys; sudo chmod 0600 /var/lib/dfr/.ssh/authorized_keys"
   host=${peer#*@}
   ssh-keyscan -H "$host" 2>/dev/null | sudo tee -a /var/lib/dfr/.ssh/known_hosts >/dev/null
