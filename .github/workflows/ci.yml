@@ -123,10 +123,14 @@ jobs:
           retention-days: 30
 
   integration:
-    name: Intégration distribuée sur trois nœuds Debian 12
+    name: Intégration distribuée sur trois nœuds Debian ${{ matrix.debian }}
     needs: package
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        debian: ["12", "13"]
     steps:
       - name: Récupérer le dépôt
         uses: actions/checkout@v7
@@ -146,6 +150,8 @@ jobs:
         run: docker info
 
       - name: Exécuter les tests de réplication sur trois nœuds Debian
+        env:
+          DFR_BASE_IMAGE: debian:${{ matrix.debian }}-slim
         run: bash tests/integration/run-docker.sh
 
   release:

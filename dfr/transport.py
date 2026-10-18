@@ -42,7 +42,7 @@ class Transport:
         start = time.monotonic()
         for rel, (digest, mtime_ns, _size, _mode) in items.items():
             self.ssh(peer_id, ["begin-apply", rel, digest, str(mtime_ns)])
-        command = ["rsync", "-a", "--stats", "--partial", "--partial-dir=.dfr/tmp", "--relative", "--from0", "--files-from=-", "--protect-args",
+        command = ["rsync", "-a", "--stats", "--partial", "--partial-dir=.dfr/tmp", "--relative", "--from0", "--files-from=-",
                    "--exclude=.dfr/", "-e", f"ssh -i {self.config.ssh_key} -o BatchMode=yes -o StrictHostKeyChecking=yes -o ControlMaster=auto -o ControlPersist=60 -o ControlPath=/var/lib/dfr/.ssh/cm-%C",
                    "./", f"{target}:{self.config.root.as_posix()}/"]
         file_list = b"".join(("./" + rel).encode("utf-8", errors="surrogateescape") + b"\0" for rel in items)

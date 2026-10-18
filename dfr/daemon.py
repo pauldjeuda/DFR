@@ -319,7 +319,7 @@ class DFRDaemon:
         temp = self.config.root / ".dfr" / "tmp" / rel
         temp.parent.mkdir(parents=True, exist_ok=True)
         target = self.config.peers[peer_id]
-        cmd = ["rsync", "-a", "--partial", "--protect-args", "-e", f"ssh -i {self.config.ssh_key} -o BatchMode=yes -o StrictHostKeyChecking=yes -o ControlMaster=auto -o ControlPersist=60 -o ControlPath=/var/lib/dfr/.ssh/cm-%C",
+        cmd = ["rsync", "-a", "--partial", "-e", f"ssh -i {self.config.ssh_key} -o BatchMode=yes -o StrictHostKeyChecking=yes -o ControlMaster=auto -o ControlPersist=60 -o ControlPath=/var/lib/dfr/.ssh/cm-%C",
                f"{target}:{self.config.root.as_posix()}/{rel}", str(temp)]
         result = __import__("subprocess").run(cmd, capture_output=True, text=True, timeout=3600)
         if result.returncode: raise RuntimeError(result.stderr.strip() or "rsync pull en échec")

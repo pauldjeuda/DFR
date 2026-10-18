@@ -1,17 +1,19 @@
-# Validation d'intégration sur Debian 12
+# Validation d'intégration sur Debian 12 et 13
 
-La CI construit le `.deb`, puis lance ce paquet dans trois conteneurs Debian 12
-reliés en maillage. Elle configure les clés SSH, le compte restreint et les
-services, exécute les tests Bats depuis chaque nœud, puis teste les conflits et
-la reprise réseau. Pour reproduire l'intégration sur un hôte Linux avec Docker :
+La CI construit le `.deb` sur Debian 12, puis lance ce paquet dans des maillages
+de trois conteneurs Debian 12 et Debian 13. Elle configure les clés SSH, le
+compte restreint et les services, exécute les tests Bats depuis chaque nœud,
+puis teste les conflits et la reprise réseau. Pour reproduire les deux essais
+sur un hôte Linux avec Docker :
 
 ```sh
 scripts/build-deb.sh
 bash tests/integration/run-docker.sh
+DFR_BASE_IMAGE=debian:13-slim bash tests/integration/run-docker.sh
 ```
 
 Les scénarios plus proches d'une exploitation réelle doivent aussi être lancés
-sur trois VM Debian 12 avant qualification de production. Le tableau ci-dessous
+sur des VM Debian 12 et 13 avant qualification de production. Le tableau ci-dessous
 indique les contrôles et leurs limites actuelles.
 
 | ID | Vérification | Attendu |
@@ -26,7 +28,7 @@ indique les contrôles et leurs limites actuelles.
 | IT-12/13 | Boucle stable et pair hors ligne | Pas de trafic répété après convergence, rattrapage après reconnexion — CI |
 | IT-14 | `kill -9` du démon | Redémarrage réel par systemd — test VM restant |
 | IT-15/16 | Horloge décalée et corruption en transfert | Alerte et récupération après trois échecs — tests VM restants |
-| IT-17 | Chemin `..` via SSH | Requête refusée — CI |
+| IT-17 | Chemin `..` via SSH | Requête refusée — CI ; test unitaire confirme aussi que la forme de commande rsync Debian 13 avec `--partial-dir .dfr/tmp` traverse le garde-fou |
 | IT-18/19 | Débordement inotify et disque plein | Réconciliation de secours et absence de troncature — tests VM restants |
 | IT-20/21 | Écriture lente et liens symboliques | Attente de `close_write`, lien répliqué sans suivre sa cible — CI |
 | IT-22 | Ajout d'un nœud vide | Bootstrap au démarrage couvert ; ajout à un maillage déjà actif — test restant |

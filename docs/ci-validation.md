@@ -1,7 +1,7 @@
 # CI validation and production qualification
 
 The pipeline creates a Debian package candidate, installs it in Debian 12, and
-then uses that exact package in a three-node Debian 12 cluster. A tagged GitHub
+then uses that exact package in three-node Debian 12 and Debian 13 clusters. A tagged GitHub
 Release is blocked unless the quality, package, and cluster jobs all pass and
 the repository declares its license and copyright owner.
 Passing these jobs is evidence for the checks below; it is not a blanket claim
@@ -16,7 +16,7 @@ that every deployment environment has been qualified.
 | F4-F5: multi-master, push and reconciliation | Tests run from each node; offline node reconnects and catches up | Covered for normal disconnection/rejoin |
 | F6: LWW, deterministic ties, preserve loser | Concurrent edits with ordered and equal mtimes; conflict row and saved copy checked | Covered |
 | F7: operation history | Database-backed log/filter/export unit and API tests | Partially covered; not every daemon action is asserted |
-| F8: SSH key access and least privilege | Package checks restricted account shell; cluster uses forced `ssh-gate`; traversal rejected | Covered for tested command paths |
+| F8: SSH key access and least privilege | Package checks restricted account shell; cluster uses forced `ssh-gate`; traversal is rejected; unit test confirms the Debian 13 rsync server command with `--partial-dir .dfr/tmp` is accepted | Covered for tested command paths |
 | F9: integrity after replication | SHA-256 checked on each peer for ordinary files and symlink targets | Large-file corruption/retry campaign remains open |
 | F10: systemd restart | Installed unit is checked for `Restart=on-failure`; the cluster currently starts the daemon directly | Restart-after-crash is not exercised by CI |
 | F11: web status and controls | API checks status, pause/resume and exports | Browser workflow and every route are not end-to-end tested |

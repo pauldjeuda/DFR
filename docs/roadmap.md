@@ -12,7 +12,7 @@
 
 ## Validation en cours
 
-- La CI construit, installe et purge le `.deb` dans Debian 12, puis utilise le paquet dans un maillage de trois conteneurs Debian.
+- La CI construit, installe et purge le `.deb` dans Debian 12, puis utilise le paquet dans des maillages de trois conteneurs Debian 12 et 13.
 - La matrice [CI et qualification de production](ci-validation.md) suit les fonctionnalités et les scénarios du dossier de référence.
 - La validation en VM des seuils de performance, des pannes système/disque, des mises à niveau et de la reprise systemd reste nécessaire.
 - L'interface est réservée à localhost par défaut ; toute exposition réseau exige un proxy HTTPS authentifié.

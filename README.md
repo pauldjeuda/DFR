@@ -61,7 +61,7 @@ bash tests/integration/run-docker.sh
 
 Voir [la matrice de qualification](docs/ci-validation.md), [les scénarios d'intégration](tests/integration/README.md) et [la feuille de route](docs/roadmap.md).
 
-La pipeline GitHub Actions s'exécute sur chaque push, pull request et déclenchement manuel. Elle compile le Python et le JavaScript, exécute les tests avec un seuil de couverture pour la configuration et l'état, vérifie les linters, construit et installe le `.deb` sur Debian 12, puis exécute les tests de cluster. Une Release taguée exige également une licence et un copyright déclarés. Les tests VM et limites de qualification restent listés dans la [matrice](docs/ci-validation.md) ; une Release CI ne prouve pas à elle seule la conformité à chaque seuil matériel.
+La pipeline GitHub Actions s'exécute sur chaque push, pull request et déclenchement manuel. Elle compile le Python et le JavaScript, exécute les tests avec un seuil de couverture pour la configuration et l'état, vérifie les linters, construit et installe le `.deb` sur Debian 12, puis exécute les tests de cluster sous Debian 12 et 13. Une Release taguée exige également une licence et un copyright déclarés. Les tests VM et limites de qualification restent listés dans la [matrice](docs/ci-validation.md) ; une Release CI ne prouve pas à elle seule la conformité à chaque seuil matériel.
 
 ## Publier une release
 
