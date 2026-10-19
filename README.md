@@ -52,7 +52,7 @@ Le tableau de bord est accessible sur `http://127.0.0.1:8080/`. Pour un accès d
 
 ## Développement et validation
 
-Les tests unitaires et scénarios Debian sont dans `tests/`. Les tests unitaires tournent sur chaque push. La CI construit ensuite le paquet et le teste dans un maillage Docker à trois nœuds Debian 12. Pour rejouer ce maillage sur Linux :
+Les tests unitaires et scénarios Debian sont dans `tests/`. Les tests unitaires tournent sur chaque push ; les scénarios maillés se lancent manuellement sur Linux :
 
 ```sh
 scripts/build-deb.sh
@@ -61,7 +61,7 @@ bash tests/integration/run-docker.sh
 
 Voir [la matrice de qualification](docs/ci-validation.md), [les scénarios d'intégration](tests/integration/README.md) et [la feuille de route](docs/roadmap.md).
 
-La pipeline GitHub Actions s'exécute sur chaque push, pull request et déclenchement manuel. Elle compile le Python et le JavaScript, exécute les tests avec un seuil de couverture pour la configuration et l'état, vérifie les linters, construit et installe le `.deb` sur Debian 12, puis exécute les tests de cluster sous Debian 12. Une Release taguée exige également une licence et un copyright déclarés. Les tests VM et limites de qualification restent listés dans la [matrice](docs/ci-validation.md) ; une Release CI ne prouve pas à elle seule la conformité à chaque seuil matériel.
+La pipeline GitHub Actions s'exécute sur chaque push, pull request et déclenchement manuel. Elle compile le Python, exécute les tests unitaires et les linters, construit et installe le `.deb` sur Debian 12, puis publie un artefact téléchargeable pendant 30 jours. Un tag de version publie le paquet dans GitHub Releases après le succès du build. La CI teste notamment la forme de commande rsync Debian 13 et son acceptation par `ssh-gate`; le maillage de trois nœuds reste disponible pour les essais manuels. Voir la [matrice](docs/ci-validation.md) pour les scénarios qui restent à qualifier.
 
 ## Publier une release
 
