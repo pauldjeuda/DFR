@@ -34,8 +34,10 @@ async function refreshAll() {
       get('/api/status'), get('/api/nodes'), get('/api/logs?' + params), get('/api/conflicts')
     ]);
     document.querySelector('#node-id').textContent = status.node;
+    document.querySelector('#hero-node').textContent = status.node;
     document.querySelector('#queue').textContent = status.queue;
     document.querySelector('#last-sync').textContent = fmtTime(status.last_success);
+    document.querySelector('#hero-last-sync').textContent = fmtTime(status.last_success);
     document.querySelector('#uptime').textContent = fmtUptime(status.uptime_s || 0);
     document.querySelector('#conflict-count').textContent = conflicts.length;
     const pill = document.querySelector('#service-state');
@@ -61,10 +63,12 @@ async function refreshAll() {
       document.querySelector('#export-' + format).href = '/api/logs/export?' + exportParams;
     }
     document.querySelector('#refresh-state').textContent = 'Mis à jour ' + new Date().toLocaleTimeString('fr-FR');
+    document.querySelector('.nav-status').classList.remove('offline');
   } catch (error) {
     document.querySelector('#refresh-state').textContent = 'Démon indisponible';
     document.querySelector('#service-state').textContent = 'Indisponible';
     document.querySelector('#service-state').classList.add('offline');
+    document.querySelector('.nav-status').classList.add('offline');
   }
 }
 
