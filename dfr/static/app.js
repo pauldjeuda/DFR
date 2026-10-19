@@ -1,10 +1,4 @@
 const fmtTime = (value) => value ? new Date(value * 1000).toLocaleString('fr-FR') : 'Jamais';
-const fmtUptime = (seconds) => {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  return days ? `${days} j ${hours} h` : hours ? `${hours} h ${minutes} min` : `${minutes} min`;
-};
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function filterParams() {
@@ -27,48 +21,87 @@ async function get(url) {
 }
 
 async function refreshAll() {
+  const connection = document.querySelector('.connection');
+  const service = document.querySelector('#service-state');
   try {
-    const params = filterParams();
-    params.set('limit', '12');
-    const [status, nodes, logs, conflicts] = await Promise.all([
-      get('/api/status'), get('/api/nodes'), get('/api/logs?' + params), get('/api/conflicts')
-    ]);
-    document.querySelector('#node-id').textContent = status.node;
-    document.querySelector('#hero-node').textContent = status.node;
-    document.querySelector('#queue').textContent = status.queue;
+    const status = await get('/api/status');
+    document.querySelector('#node-id').textContent = status.node || '—';
+    document.querySelector('#queue').textContent = Number.isFinite(Number(status.queue)) ? status.queue : '—';
     document.querySelector('#last-sync').textContent = fmtTime(status.last_success);
-    document.querySelector('#hero-last-sync').textContent = fmtTime(status.last_success);
-    document.querySelector('#uptime').textContent = fmtUptime(status.uptime_s || 0);
-    document.querySelector('#conflict-count').textContent = conflicts.length;
-    const pill = document.querySelector('#service-state');
-    pill.textContent = status.paused ? 'En pause' : 'En service';
-    pill.classList.toggle('offline', !status.running);
-
     document.querySelector('#shared-root').textContent = status.root || 'Indisponible';
+    service.textContent = status.paused ? 'En pause' : status.running ? 'En service' : 'Arrêté';
+    service.classList.toggle('offline', !status.running);
+    connection.classList.toggle('offline', !status.running);
+    document.querySelector('[data-control="pause"]').disabled = !status.running || Boolean(status.paused);
+    document.querySelector('[data-control="resume"]').disabled = !status.running || !status.paused;
+    document.querySelector('[data-control="resync"]').disabled = !status.running;
+    document.querySelector('#refresh-state').textContent = 'Mis à jour ' + new Date().toLocaleTimeString('fr-FR');
+  } catch (error) {
+    document.querySelector('#node-id').textContent = 'Indisponible';
+    document.querySelector('#queue').textContent = '—';
+    document.querySelector('#last-sync').textContent = '—';
+    document.querySelector('#shared-root').textContent = 'Indisponible';
+    service.textContent = 'Démon indisponible';
+    service.classList.add('offline');
+    connection.classList.add('offline');
+    document.querySelector('#refresh-state').textContent = error.message;
+    for (const selector of ['[data-control="pause"]', '[data-control="resume"]', '[data-control="resync"]']) {
+      document.querySelector(selector).disabled = true;
+    }
+  }
+
+  const params = filterParams();
+  params.set('limit', '12');
+  const [nodesResult, peersResult, logsResult, conflictsResult] = await Promise.allSettled([
+    get('/api/nodes'), get('/api/config/peers'), get('/api/logs?' + params), get('/api/conflicts')
+  ]);
+
+  if (nodesResult.status === 'fulfilled') {
+    const nodes = nodesResult.value;
+    const peerTargets = peersResult.status === 'fulfilled'
+      ? new Map(peersResult.value.map((peer) => [peer.id, peer.target]))
+      : new Map();
     document.querySelector('#nodes').innerHTML = nodes.length ? nodes.map((node) => {
       const live = node.reachable === true;
       const identityOK = node.identity_matches !== false;
-      const delta = node.clock_delta_live ?? node.clock_delta;
       const healthy = live && identityOK;
-      return `<article class="node"><div><strong>${escapeHtml(node.id)}</strong><small>Nœud distant : ${escapeHtml(node.reported_node || 'non confirmé')}</small><small>Vérifié : ${fmtTime(node.checked_at)}</small><small>Dernier succès de réplication : ${fmtTime(node.last_success)}</small><small>Écart d'horloge : ${Number(delta || 0).toFixed(2)} s</small>${!identityOK ? '<small class="error-text">L’identifiant distant ne correspond pas au pair configuré.</small>' : ''}${node.probe_error ? `<small class="error-text">${escapeHtml(node.probe_error)}</small>` : ''}${node.last_error ? `<small>${escapeHtml(node.last_error)}</small>` : ''}</div><span class="badge ${healthy ? '' : 'down'}">${!live ? 'Injoignable' : identityOK ? 'Joignable maintenant' : 'Identité inattendue'}</span></article>`;
-    }).join('') : '<p class="muted">Aucun pair configuré.</p>';
+      const target = peerTargets.get(node.id) || node.reported_node || 'Cible non disponible';
+      return `<article class="node"><div><strong>${escapeHtml(node.id)}</strong><small>${escapeHtml(target)}</small>${node.last_success ? `<small>Dernier transfert : ${fmtTime(node.last_success)}</small>` : ''}${!identityOK ? '<small class="error-text">Identifiant distant inattendu.</small>' : ''}${node.probe_error ? `<small class="error-text">${escapeHtml(node.probe_error)}</small>` : ''}${node.last_error ? `<small>${escapeHtml(node.last_error)}</small>` : ''}</div><span class="badge ${healthy ? '' : 'down'}">${!live ? 'Injoignable' : identityOK ? 'Joignable' : 'Identité inattendue'}</span></article>`;
+    }).join('') : '<p class="empty-state">Aucun pair configuré.</p>';
+  } else {
+    document.querySelector('#nodes').innerHTML = `<p class="empty-state error-text">État des pairs indisponible : ${escapeHtml(nodesResult.reason.message)}</p>`;
+  }
+
+  if (logsResult.status === 'fulfilled') {
+    const logs = logsResult.value;
     document.querySelector('#logs').innerHTML = logs.items.length ? logs.items.map((item) =>
       `<tr><td>${fmtTime(item.ts)}</td><td>${escapeHtml(item.event)}</td><td>${escapeHtml(item.path || '—')}</td><td>${escapeHtml(item.peer || item.node)}</td><td>${escapeHtml(item.result || '—')}</td></tr>`
     ).join('') : '<tr><td colspan="5">Aucune opération enregistrée.</td></tr>';
-    document.querySelector('#conflicts').innerHTML = conflicts.length ? conflicts.slice(0, 8).map((item) =>
-      `<div class="conflict"><strong>${escapeHtml(item.path)}</strong><small>Version retenue : ${escapeHtml(item.winner)} · version conservée : ${escapeHtml(item.loser)} · ${fmtTime(item.ts)}</small><button onclick="restoreConflict(${item.id})">Restaurer la version conservée</button></div>`
-    ).join('') : '<p class="muted">Aucun conflit récent.</p>';
+    document.querySelector('#logs-message').textContent = '';
+    document.querySelector('#logs-message').classList.remove('error-text');
     for (const format of ['csv', 'json']) {
       const exportParams = filterParams(); exportParams.set('format', format);
       document.querySelector('#export-' + format).href = '/api/logs/export?' + exportParams;
     }
-    document.querySelector('#refresh-state').textContent = 'Mis à jour ' + new Date().toLocaleTimeString('fr-FR');
-    document.querySelector('.nav-status').classList.remove('offline');
-  } catch (error) {
-    document.querySelector('#refresh-state').textContent = 'Démon indisponible';
-    document.querySelector('#service-state').textContent = 'Indisponible';
-    document.querySelector('#service-state').classList.add('offline');
-    document.querySelector('.nav-status').classList.add('offline');
+  } else {
+    document.querySelector('#logs').innerHTML = '<tr><td colspan="5">Journaux indisponibles.</td></tr>';
+    document.querySelector('#logs-message').textContent = logsResult.reason.message;
+    document.querySelector('#logs-message').classList.add('error-text');
+  }
+
+  if (conflictsResult.status === 'fulfilled') {
+    const conflicts = conflictsResult.value;
+    document.querySelector('#conflict-count').textContent = conflicts.length;
+    document.querySelector('#conflicts').innerHTML = conflicts.length ? conflicts.slice(0, 8).map((item) =>
+      `<div class="conflict"><strong>${escapeHtml(item.path)}</strong><small>Retenue : ${escapeHtml(item.winner)} · conservée : ${escapeHtml(item.loser)} · ${fmtTime(item.ts)}</small><button type="button" onclick="restoreConflict(${item.id})">Restaurer la version conservée</button></div>`
+    ).join('') : '<p class="empty-state">Aucun conflit à restaurer.</p>';
+    document.querySelector('#conflicts-message').textContent = '';
+    document.querySelector('#conflicts-message').classList.remove('error-text');
+  } else {
+    document.querySelector('#conflict-count').textContent = '—';
+    document.querySelector('#conflicts').innerHTML = '<p class="empty-state">Conflits indisponibles.</p>';
+    document.querySelector('#conflicts-message').textContent = conflictsResult.reason.message;
+    document.querySelector('#conflicts-message').classList.add('error-text');
   }
 }
 
@@ -88,9 +121,13 @@ async function restoreConflict(id) {
     const response = await fetch(`/api/conflicts/${id}/restore`, {method: 'POST'});
     const body = await response.json();
     if (!response.ok) throw new Error(body.error || 'Restauration impossible');
-    document.querySelector('#action-message').textContent = 'Version restaurée et resynchronisation lancée.';
+    document.querySelector('#conflicts-message').textContent = 'Version restaurée. La réplication va reprendre.';
+    document.querySelector('#conflicts-message').classList.remove('error-text');
     refreshAll();
-  } catch (error) { document.querySelector('#action-message').textContent = error.message; }
+  } catch (error) {
+    document.querySelector('#conflicts-message').textContent = error.message;
+    document.querySelector('#conflicts-message').classList.add('error-text');
+  }
 }
 
 document.querySelector('#log-filters').addEventListener('submit', (event) => { event.preventDefault(); refreshAll(); });
@@ -139,8 +176,7 @@ async function loadFiles(path = currentDirectory) {
       const canEdit = item.type === 'file';
       const open = canOpen ? `<button type="button" data-action="open" data-path="${escapeHtml(item.path)}">Ouvrir</button>` : '';
       const edit = canEdit ? `<button type="button" data-action="edit" data-path="${escapeHtml(item.path)}">Modifier</button><a class="button-link" href="/api/files/download?${new URLSearchParams({path: item.path})}">Télécharger</a>` : '';
-      const move = item.type !== 'symlink' ? `<button type="button" data-action="move" data-path="${escapeHtml(item.path)}">Déplacer ici</button>` : '';
-      return `<tr><td>${escapeHtml(item.name)}</td><td>${({directory:'Répertoire',file:'Fichier',symlink:'Lien symbolique'})[item.type] || item.type}</td><td>${item.type === 'file' ? humanSize(item.size) : '—'}</td><td>${fmtTime(item.modified)}</td><td class="file-actions">${open}${edit}<button type="button" data-action="rename" data-path="${escapeHtml(item.path)}">Renommer</button>${move}<button type="button" data-action="delete" data-path="${escapeHtml(item.path)}" class="danger">Supprimer</button></td></tr>`;
+      return `<tr><td>${escapeHtml(item.name)}</td><td>${({directory:'Dossier',file:'Fichier',symlink:'Lien'})[item.type] || item.type}</td><td>${item.type === 'file' ? humanSize(item.size) : '—'}</td><td>${fmtTime(item.modified)}</td><td class="file-actions">${open}${edit}<button type="button" data-action="rename" data-path="${escapeHtml(item.path)}">Renommer</button><button type="button" data-action="delete" data-path="${escapeHtml(item.path)}" class="danger">Supprimer</button></td></tr>`;
     }).join('') : '<tr><td colspan="5">Ce répertoire est vide.</td></tr>';
   } catch (error) {
     document.querySelector('#files').innerHTML = `<tr><td colspan="5">${escapeHtml(error.message)}</td></tr>`;
@@ -232,11 +268,6 @@ document.querySelector('#files').addEventListener('click', async (event) => {
       const newName = prompt('Nouveau nom :', path.split('/').pop());
       if (!newName || newName === path.split('/').pop()) return;
       const destination = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) + newName : newName;
-      await apiRequest('/api/files/rename', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path, destination})});
-    }
-    if (action === 'move') {
-      const destination = currentDirectory ? `${currentDirectory}/${path.split('/').pop()}` : path.split('/').pop();
-      if (destination === path || !confirm(`Déplacer « ${path} » dans « ${currentDirectory || 'la racine partagée'} » ?`)) return;
       await apiRequest('/api/files/rename', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path, destination})});
     }
     fileMessage('Opération enregistrée. La réplication se fera automatiquement.');

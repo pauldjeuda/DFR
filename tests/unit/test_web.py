@@ -66,9 +66,11 @@ def test_dashboard_includes_shared_files_and_peer_controls(tmp_path, monkeypatch
     response = client.get("/")
     assert response.status_code == 200
     page = response.get_data(as_text=True)
-    assert 'id="file-panel"' in page
+    assert 'id="files-panel"' in page
+    assert 'id="nodes-panel"' in page
     assert 'id="peer-form"' in page
-    assert 'id="uptime"' in page
+    assert 'id="activity-panel"' in page
+    assert 'id="uptime"' not in page
 
 
 def test_dashboard_rejects_cross_site_mutating_request(tmp_path, monkeypatch):

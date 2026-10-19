@@ -3,130 +3,93 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#eeece8">
-  <title>DFR — Supervision</title>
+  <meta name="theme-color" content="#f3f2ed">
+  <title>DFR — Fichiers partagés</title>
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="nav-shell">
-      <a class="brand" href="#top" aria-label="DFR, revenir en haut">
-        <span class="brand-mark" aria-hidden="true">D</span>
-        <span class="brand-copy"><strong>DFR</strong><small>Réplication distribuée</small></span>
-      </a>
-      <nav class="main-nav" aria-label="Navigation principale">
-        <a href="#overview">Vue d’ensemble</a>
-        <a href="#mesh">Maillage</a>
-        <a href="#file-panel">Fichiers</a>
-        <a href="#activity">Activité</a>
-        <a href="#conflict-panel">Conflits</a>
-      </nav>
-      <div class="nav-status"><span class="status-dot" aria-hidden="true"></span><span id="refresh-state" aria-live="polite">Connexion…</span></div>
-    </div>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="DFR, accueil"><span class="brand-mark">D</span><strong>DFR</strong></a>
+    <nav aria-label="Navigation principale">
+      <a href="#files-panel">Fichiers</a>
+      <a href="#nodes-panel">Nœuds</a>
+      <a href="#activity-panel">Activité</a>
+    </nav>
+    <div class="connection"><span class="status-dot" aria-hidden="true"></span><span id="service-state">Connexion…</span></div>
   </header>
 
-  <main id="top">
-    <section class="hero page-width" id="overview" aria-labelledby="page-title">
-      <div class="hero-copy">
-        <p class="eyebrow">ESPACE DE SUPERVISION · LINUX DISTRIBUTED FILE REPLICATOR</p>
-        <h1 id="page-title">Vos fichiers,<br><em>en harmonie.</em></h1>
-        <p class="hero-lead">Suivez la réplication de vos nœuds et gérez votre espace partagé depuis un seul endroit.</p>
-      </div>
-      <div class="hero-status-card">
-        <div class="status-card-head"><span class="eyebrow">ÉTAT DU SERVICE</span><span class="status-pill" id="service-state">Chargement</span></div>
-        <span class="hero-caption">Nœud local</span>
-        <strong class="hero-node" id="hero-node">—</strong>
-        <span class="hero-caption">Dernière synchronisation réussie</span>
-        <strong class="hero-last-sync" id="hero-last-sync">—</strong>
-      </div>
+  <main id="top" class="layout">
+    <section class="overview" aria-label="État du nœud">
+      <div><span class="label">NŒUD LOCAL</span><strong id="node-id">—</strong></div>
+      <div><span class="label">EN ATTENTE</span><strong><span id="queue">—</span><small> éléments</small></strong></div>
+      <div><span class="label">DERNIÈRE SYNCHRONISATION</span><strong id="last-sync">—</strong></div>
+      <button class="icon-button" type="button" onclick="refreshAll()" aria-label="Actualiser" title="Actualiser">↻</button>
+      <span id="refresh-state" class="refresh-state" aria-live="polite">Chargement…</span>
     </section>
 
-    <section class="metrics page-width" aria-label="Indicateurs du nœud local">
-      <article class="metric"><span class="metric-label">Nœud local</span><strong id="node-id">—</strong><small>Identité de ce serveur</small></article>
-      <article class="metric"><span class="metric-label">En attente</span><strong><span id="queue">—</span><span class="metric-unit">éléments</span></strong><small>File de réplication</small></article>
-      <article class="metric"><span class="metric-label">Dernière synchronisation</span><strong class="metric-date" id="last-sync">—</strong><small>Dernier transfert confirmé</small></article>
-      <article class="metric"><span class="metric-label">Durée de service</span><strong id="uptime">—</strong><small>Depuis le démarrage du démon</small></article>
-      <article class="metric metric-accent"><span class="metric-label">Conflits à consulter</span><strong id="conflict-count">—</strong><small>Versions conservées</small></article>
-    </section>
-
-    <section class="panel page-width" id="mesh" aria-labelledby="mesh-title">
-      <div class="section-heading">
-        <div><p class="eyebrow">01 · RÉSEAU</p><h2 id="mesh-title">Un maillage, plusieurs nœuds.</h2><p class="section-lead">État SSH vérifié en direct, identité distante et dernier transfert connu.</p></div>
-        <button class="button button-light" type="button" onclick="refreshAll()">Actualiser le réseau</button>
-      </div>
-      <div id="nodes" class="node-list"><p class="empty-state">Chargement des nœuds…</p></div>
-    </section>
-
-    <section class="panel page-width" aria-labelledby="peer-title">
-      <div class="section-heading compact-heading">
-        <div><p class="eyebrow">CONFIGURATION</p><h2 id="peer-title">Les nœuds de votre maillage.</h2><p class="section-lead">Ajoutez ou retirez des pairs dont l’accès SSH DFR est déjà préparé.</p></div>
-      </div>
-      <form id="peer-form" class="peer-form">
-        <label>Identifiant du nœud<input name="id" required pattern="[a-z0-9_.-]+" maxlength="64" placeholder="node-b"></label>
-        <label>Compte SSH DFR<input name="target" required pattern="[A-Za-z0-9_.-]+@([A-Za-z0-9.-]+|\[[0-9A-Fa-f:]+\])" placeholder="dfr@node-b"></label>
-        <button class="button button-dark" type="submit">Ajouter un pair</button>
-      </form>
-      <p id="peer-message" class="inline-message" aria-live="polite"></p>
-      <div id="configured-peers" class="peer-list"><p class="empty-state">Chargement…</p></div>
-    </section>
-
-    <section class="panel page-width" aria-labelledby="actions-title">
-      <div class="section-heading compact-heading">
-        <div><p class="eyebrow">CONTRÔLES</p><h2 id="actions-title">Gardez le rythme.</h2><p class="section-lead">Mettez les transferts en pause ou demandez une réconciliation immédiate.</p></div>
-      </div>
-      <div class="actions">
-        <button class="button button-light" type="button" onclick="control('pause')">Mettre en pause</button>
-        <button class="button button-light" type="button" onclick="control('resume')">Reprendre</button>
-        <button class="button button-dark" type="button" onclick="control('resync')">Resynchroniser</button>
-      </div>
-      <p id="action-message" class="inline-message" aria-live="polite"></p>
-    </section>
-
-    <section class="panel page-width file-panel" id="file-panel" aria-labelledby="files-title">
-      <div class="section-heading">
-        <div><p class="eyebrow">02 · ESPACE PARTAGÉ</p><h2 id="files-title">Un espace à votre mesure.</h2><p class="section-lead">Parcourez la racine partagée, puis créez ou gérez son contenu.</p></div>
+    <section class="panel file-panel" id="files-panel" aria-labelledby="files-title">
+      <div class="panel-heading">
+        <div><h1 id="files-title">Fichiers partagés</h1><p class="root-path"><span>Racine</span><code id="shared-root">Chargement…</code></p></div>
         <button class="button button-light" id="files-refresh" type="button">Actualiser</button>
       </div>
-      <div class="root-location"><span class="root-icon" aria-hidden="true">⌂</span><span><small>RACINE DE CE NŒUD</small><code id="shared-root">Chargement…</code></span></div>
       <nav id="file-breadcrumbs" class="breadcrumbs" aria-label="Chemin courant"></nav>
       <div class="file-toolbar">
-        <form id="new-directory-form" class="tool-form"><label><span>Nouveau répertoire</span><input name="name" required maxlength="255" placeholder="Nom du répertoire"></label><button class="button button-light" type="submit">Créer</button></form>
+        <form id="new-directory-form" class="tool-form"><label><span>Nouveau dossier</span><input name="name" required maxlength="255" placeholder="Nom du dossier"></label><button class="button button-light" type="submit">Créer</button></form>
         <form id="new-file-form" class="tool-form"><label><span>Nouveau fichier texte</span><input name="name" required maxlength="255" placeholder="Nom du fichier"></label><button class="button button-light" type="submit">Créer</button></form>
-        <form id="upload-form" class="tool-form upload-form"><label><span>Importer des fichiers</span><input name="files" type="file" multiple required></label><button class="button button-dark" type="submit">Téléverser</button></form>
+        <form id="upload-form" class="tool-form upload-form"><label><span>Importer des fichiers</span><input name="files" type="file" multiple required></label><button class="button button-primary" type="submit">Importer</button></form>
       </div>
-      <p id="files-message" class="inline-message" aria-live="polite"></p>
-      <div class="table-wrap file-table-wrap"><table class="data-table"><thead><tr><th>Nom</th><th>Type</th><th>Taille</th><th>Modifié</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="files"><tr><td colspan="5">Chargement…</td></tr></tbody></table></div>
+      <p id="files-message" class="message" aria-live="polite"></p>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Nom</th><th>Type</th><th>Taille</th><th>Modifié</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="files"><tr><td colspan="5">Chargement…</td></tr></tbody></table></div>
       <div id="file-editor" class="file-editor" hidden>
         <div class="editor-heading"><strong id="editor-title">Modifier le fichier</strong><button type="button" id="editor-close" class="button button-text">Fermer</button></div>
         <textarea id="editor-content" spellcheck="false" aria-label="Contenu du fichier"></textarea>
-        <div class="actions"><button type="button" id="editor-save" class="button button-dark">Enregistrer</button></div>
+        <div class="editor-actions"><button type="button" id="editor-save" class="button button-primary">Enregistrer</button></div>
       </div>
     </section>
 
-    <section class="panel page-width" id="activity" aria-labelledby="activity-title">
-      <div class="section-heading">
-        <div><p class="eyebrow">03 · JOURNAL</p><h2 id="activity-title">Chaque changement compte.</h2><p class="section-lead">Filtrez l’historique et exportez les opérations de réplication.</p></div>
-        <div class="export"><a id="export-csv" href="/api/logs/export?format=csv">Télécharger CSV <span aria-hidden="true">↗</span></a><a id="export-json" href="/api/logs/export?format=json">Télécharger JSON <span aria-hidden="true">↗</span></a></div>
+    <section class="panel" id="nodes-panel" aria-labelledby="nodes-title">
+      <div class="panel-heading"><div><h2 id="nodes-title">Nœuds et synchronisation</h2><p class="section-note">État de connexion vérifié sur chaque pair.</p></div></div>
+      <div id="nodes" class="node-list"><p class="empty-state">Chargement…</p></div>
+      <details class="subsection">
+        <summary>Gérer les pairs</summary>
+        <form id="peer-form" class="peer-form">
+          <label>Identifiant<input name="id" required pattern="[a-z0-9_.-]+" maxlength="64" placeholder="node-b"></label>
+          <label>Compte SSH<input name="target" required pattern="[A-Za-z0-9_.-]+@([A-Za-z0-9.-]+|\[[0-9A-Fa-f:]+\])" placeholder="dfr@node-b"></label>
+          <button class="button button-primary" type="submit">Ajouter</button>
+        </form>
+        <p id="peer-message" class="message" aria-live="polite"></p>
+        <div id="configured-peers" class="peer-list"><p class="empty-state">Chargement…</p></div>
+      </details>
+      <div class="sync-controls" aria-label="Commandes de synchronisation">
+        <button class="button button-light" type="button" data-control="pause" onclick="control('pause')">Mettre en pause</button>
+        <button class="button button-light" type="button" data-control="resume" onclick="control('resume')">Reprendre</button>
+        <button class="button button-text" type="button" data-control="resync" onclick="control('resync')">Synchroniser maintenant</button>
       </div>
-      <form id="log-filters" class="filters">
-        <label>Depuis<input name="from" type="datetime-local"></label>
-        <label>Jusqu’à<input name="to" type="datetime-local"></label>
-        <label>Nœud<input name="node" placeholder="Tous les nœuds"></label>
-        <label>Type<input name="type" placeholder="Tous les types"></label>
-        <label>Niveau<select name="level"><option value="">Tous</option><option>info</option><option>warning</option><option>error</option><option>debug</option></select></label>
-        <button class="button button-dark" type="submit">Appliquer les filtres</button>
-        <button class="button button-text" type="reset">Effacer</button>
-      </form>
-      <div class="table-wrap"><table class="data-table"><thead><tr><th>Heure</th><th>Type</th><th>Chemin</th><th>Nœud / pair</th><th>Résultat</th></tr></thead><tbody id="logs"><tr><td colspan="5">Chargement…</td></tr></tbody></table></div>
+      <p id="action-message" class="message" aria-live="polite"></p>
     </section>
 
-    <section class="panel page-width conflicts-panel" id="conflict-panel" aria-labelledby="conflicts-title">
-      <div class="section-heading"><div><p class="eyebrow">04 · VERSIONS CONSERVÉES</p><h2 id="conflicts-title">Choisissez la version à garder.</h2><p class="section-lead">Les versions perdantes restent disponibles pour restauration.</p></div></div>
-      <div id="conflicts" class="conflict-list"><p class="empty-state">Chargement…</p></div>
+    <section class="panel secondary-panel" id="activity-panel" aria-labelledby="activity-title">
+      <details>
+        <summary id="activity-title">Journaux et conflits <span class="count" id="conflict-count">—</span></summary>
+        <div class="secondary-content">
+          <div class="subheading"><h2>Journaux</h2><div class="export"><a id="export-csv" href="/api/logs/export?format=csv">CSV</a><a id="export-json" href="/api/logs/export?format=json">JSON</a></div></div>
+          <form id="log-filters" class="filters">
+            <label>Depuis<input name="from" type="datetime-local"></label>
+            <label>Jusqu’à<input name="to" type="datetime-local"></label>
+            <label>Nœud ou pair<input name="node" placeholder="Tous"></label>
+            <label>Type<input name="type" placeholder="Tous"></label>
+            <label>Niveau<select name="level"><option value="">Tous</option><option>info</option><option>warning</option><option>error</option><option>debug</option></select></label>
+            <button class="button button-primary" type="submit">Filtrer</button>
+            <button class="button button-text" type="reset">Effacer</button>
+          </form>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>Heure</th><th>Événement</th><th>Chemin</th><th>Pair</th><th>Résultat</th></tr></thead><tbody id="logs"><tr><td colspan="5">Chargement…</td></tr></tbody></table></div>
+          <p id="logs-message" class="message" aria-live="polite"></p>
+          <div id="conflicts" class="conflict-list"><p class="empty-state">Chargement…</p></div>
+          <p id="conflicts-message" class="message" aria-live="polite"></p>
+        </div>
+      </details>
     </section>
   </main>
-
-  <footer class="site-footer"><div class="footer-inner page-width"><a class="footer-brand" href="#top">DFR<span>·</span></a><span>Réplication distribuée, pensée pour Linux.</span><span>État actualisé automatiquement</span></div></footer>
   <script src="/static/app.js"></script>
 </body>
 </html>
