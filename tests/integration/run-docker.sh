@@ -9,7 +9,6 @@ if [[ -z "$PACKAGE" ]]; then
 fi
 
 PACKAGE_ARG=${PACKAGE#"$ROOT/"}
-DEBIAN_IMAGE=${DFR_BASE_IMAGE:-debian:12-slim}
 SUFFIX=${GITHUB_RUN_ID:-local}-${RANDOM}
 IMAGE="dfr-integration:$SUFFIX"
 NETWORK="dfr-integration-$SUFFIX"
@@ -35,8 +34,7 @@ cleanup() {
 trap 'cleanup "$?"' EXIT
 
 docker build --tag "$IMAGE" --file "$ROOT/tests/integration/Dockerfile" \
-  --build-arg "DEB_PACKAGE=$PACKAGE_ARG" \
-  --build-arg "DEBIAN_IMAGE=$DEBIAN_IMAGE" "$ROOT"
+  --build-arg "DEB_PACKAGE=$PACKAGE_ARG" "$ROOT"
 docker network create "$NETWORK" >/dev/null
 
 for index in "${!NODES[@]}"; do

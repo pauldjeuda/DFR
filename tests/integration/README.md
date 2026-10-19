@@ -1,19 +1,18 @@
-# Validation d'intégration sur Debian 12 et 13
+# Validation d'intégration sur Debian 12
 
-La CI construit le `.deb` sur Debian 12, puis lance ce paquet dans des maillages
-de trois conteneurs Debian 12 et Debian 13. Elle configure les clés SSH, le
-compte restreint et les services, exécute les tests Bats depuis chaque nœud,
-puis teste les conflits et la reprise réseau. Pour reproduire les deux essais
-sur un hôte Linux avec Docker :
+La CI construit le `.deb` sur Debian 12, puis lance ce paquet dans un maillage
+de trois conteneurs Debian 12. Elle configure les clés SSH, le compte restreint
+et les services, exécute les tests Bats depuis chaque nœud, puis teste les
+conflits et la reprise réseau. Pour reproduire l'intégration sur un hôte Linux
+avec Docker :
 
 ```sh
 scripts/build-deb.sh
 bash tests/integration/run-docker.sh
-DFR_BASE_IMAGE=debian:13-slim bash tests/integration/run-docker.sh
 ```
 
 Les scénarios plus proches d'une exploitation réelle doivent aussi être lancés
-sur des VM Debian 12 et 13 avant qualification de production. Le tableau ci-dessous
+sur trois VM Debian 12 avant qualification de production. Le tableau ci-dessous
 indique les contrôles et leurs limites actuelles.
 
 | ID | Vérification | Attendu |

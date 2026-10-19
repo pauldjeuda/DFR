@@ -1,7 +1,7 @@
 # CI validation and production qualification
 
 The pipeline creates a Debian package candidate, installs it in Debian 12, and
-then uses that exact package in three-node Debian 12 and Debian 13 clusters. A tagged GitHub
+then uses that exact package in a three-node Debian 12 cluster. A tagged GitHub
 Release is blocked unless the quality, package, and cluster jobs all pass and
 the repository declares its license and copyright owner.
 Passing these jobs is evidence for the checks below; it is not a blanket claim
