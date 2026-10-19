@@ -125,6 +125,11 @@ def test_shared_files_api_supports_crud_and_upload(tmp_path, monkeypatch):
     }, content_type="multipart/form-data")
     assert response.status_code == 201
     assert response.json["created"] == ["Documents/été 2026.txt"]
+    response = client.post("/api/files/upload", data={
+        "parent": "Documents", "files": (BytesIO(b"autre"), "été 2026.txt")
+    }, content_type="multipart/form-data")
+    assert response.status_code == 409
+    assert (root / "Documents" / "été 2026.txt").read_text(encoding="utf-8") == "bonjour"
 
     response = client.get("/api/files?path=Documents")
     assert response.status_code == 200

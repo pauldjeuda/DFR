@@ -70,7 +70,7 @@ def create_app(config_path="/etc/dfr/dfr.conf"):
             raise ValueError("nom trop long (255 octets maximum)")
         return file_path(f"{parent}/{name}" if parent else name)
 
-    def write_atomic(destination, stream, limit):
+    def write_atomic(destination, stream, limit, *, overwrite=True):
         destination.parent.mkdir(parents=False, exist_ok=True)
         fd, temp_name = tempfile.mkstemp(prefix=".dfr-upload-", suffix=".tmp", dir=destination.parent)
         try:
@@ -83,7 +83,11 @@ def create_app(config_path="/etc/dfr/dfr.conf"):
                     output.write(chunk)
                 output.flush()
                 os.fsync(output.fileno())
-            os.replace(temp_name, destination)
+            if overwrite:
+                os.replace(temp_name, destination)
+            else:
+                os.link(temp_name, destination)
+                os.unlink(temp_name)
         except Exception:
             try: os.unlink(temp_name)
             except FileNotFoundError: pass
@@ -265,7 +269,7 @@ def create_app(config_path="/etc/dfr/dfr.conf"):
                 name = (upload.filename or "").replace("\\", "/").rsplit("/", 1)[-1]
                 target = child_path(parent, name)
                 if target.exists() or target.is_symlink(): raise FileExistsError(name)
-                write_atomic(target, upload.stream, 1024 * 1024 * 1024)
+                write_atomic(target, upload.stream, 1024 * 1024 * 1024, overwrite=False)
                 created.append(target.relative_to(config.root.resolve()).as_posix())
             return jsonify({"created": created}), 201
         except FileExistsError as exc:
