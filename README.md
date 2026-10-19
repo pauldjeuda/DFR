@@ -48,7 +48,9 @@ sudo dfr-ctl resync
 sudo dfr-ctl reload
 ```
 
-Le tableau de bord est accessible sur `http://127.0.0.1:8080/`. Pour un accès distant, placez-le derrière un proxy HTTPS authentifié. Les journaux sont consultables avec `journalctl -u dfr` et exportables en CSV/JSON dans l'interface.
+Le tableau de bord est accessible sur `http://127.0.0.1:8080/`. Il affiche l'état local et vérifie la joignabilité SSH de chaque pair. Le navigateur de fichiers permet de parcourir les sous-répertoires de la racine partagée, créer/importer/modifier/télécharger/déplacer/renommer/supprimer des éléments ; ces changements locaux sont répliqués par le démon. L'interface permet aussi d'ajouter ou retirer des pairs déjà préparés pour l'accès SSH DFR. Les journaux sont filtrables et exportables en CSV/JSON, et les conflits peuvent être restaurés depuis l'interface. Pour un accès distant, placez le tableau derrière un proxy HTTPS authentifié.
+
+La racine affichée par l'interface est celle définie dans `[node] root`; la navigation et les opérations restent confinées à cette racine. La racine par défaut `/srv/dfr/data` est autorisée par les unités systemd. Si vous configurez une autre racine, ajoutez-la aux directives `ReadWritePaths` des unités `dfr.service` et `dfr-web.service`, puis redémarrez les services.
 
 ## Développement et validation
 

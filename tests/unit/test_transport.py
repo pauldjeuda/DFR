@@ -68,3 +68,24 @@ def test_push_batch_fails_if_rsync_does_not_report_transfer_stats(tmp_path, monk
             raise AssertionError("missing rsync transfer statistics should fail the batch")
     finally:
         state.close()
+
+
+def test_peer_status_checks_remote_shared_root_over_ssh(tmp_path, monkeypatch):
+    root = tmp_path / "data"
+    root.mkdir()
+    config = Config(node_id="node-a", root=root, peers={"node-b": "dfr@node-b"}, ssh_key=tmp_path / "id_ed25519")
+    state = State(tmp_path / "state.db")
+    calls = []
+    transport = Transport(config, state, lambda *args: None)
+
+    def fake_ssh(peer, command, timeout=30):
+        calls.append((peer, command, timeout))
+        return {"exists": True, "type": "directory", "node": "node-b", "server_time_ns": 1}
+
+    monkeypatch.setattr(transport, "ssh", fake_ssh)
+    try:
+        result = transport.peer_status("node-b")
+        assert result["node"] == "node-b"
+        assert calls == [("node-b", ["stat", "."], 6)]
+    finally:
+        state.close()

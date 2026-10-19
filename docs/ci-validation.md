@@ -18,11 +18,11 @@ command shape and verifies that `ssh-gate` accepts it.
 | F8: SSH key access and least privilege | Package checks restricted account shell; unit test confirms the Debian 13 rsync command with `--partial-dir .dfr/tmp` reaches `ssh-gate`; traversal is rejected in the manual cluster suite | Unit test runs in CI; full SSH flow is manual |
 | F9: integrity after replication | SHA-256 checked in the manual cluster suite | Large-file corruption/retry campaign remains open |
 | F10: systemd restart | Installed unit is checked for `Restart=on-failure`; live restart is a manual VM test | Restart-after-crash is not exercised by CI |
-| F11: web status and controls | API checks status, pause/resume and exports | Unit/API coverage; browser workflow is not end-to-end tested |
+| F11: web status and controls | API checks local status, fresh SSH peer probes, pause/resume, resync, logs and exports | Unit/API coverage; browser workflow is not end-to-end tested |
 | F12: Debian package | Build, inspect, install, executable/config checks and purge in Debian 12 | Covered by CI |
 | F13: failure alerts | Offline peer recovery in manual cluster suite | Notification/alert delivery is not asserted |
 | F14: filtered CSV/JSON logs | Unit test covers date/node/type/level filters and API exports | Unit/API coverage |
-| F15: configure directories and peers in the UI | No configuration screen/API is implemented | Not implemented |
+| F15: configure directories and peers in the UI | UI provides CRUD for files/directories under the configured root and add/remove of peers with established SSH trust; changing the global root still requires coordinated node configuration | File and peer APIs covered by unit tests; browser workflow is not end-to-end tested |
 
 ## Remaining release qualification
 
@@ -38,8 +38,7 @@ The repository currently has no `LICENSE` or `packaging/debian/copyright`.
 Lintian output remains visible during candidate-package builds. The pipeline
 does not choose legal terms on the owner's behalf.
 
-F15 is classified as a future/optional item in the dossier but remains visible
-here so the implementation gap is explicit. The three-node CI is reproducible
+F15 is classified as a future/optional item in the dossier. The three-node CI is reproducible
 locally on a Linux host with Docker after building a `.deb`:
 
 ```sh

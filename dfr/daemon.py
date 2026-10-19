@@ -11,6 +11,7 @@ import socketserver
 import stat as statmod
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging.handlers import WatchedFileHandler
 from pathlib import Path
 
@@ -115,7 +116,7 @@ class DFRDaemon:
                 "queue": len(self.pending) + sum(len(batch) for batch in self.queued_pushes.values()),
                 "uptime_s": int(time.time()-self.started),
                 "last_success": self.last_sync, "root": str(self.config.root)}
-        if action == "peers": return self.state.peers_status()
+        if action == "peers": return self.peer_status()
         if action == "logs":
             args = dict(request.get("args", {}))
             limit = args.pop("limit", 200); offset = args.pop("offset", 0)
@@ -154,6 +155,33 @@ class DFRDaemon:
             self.log("warning", "conflict_restore", row["path"], result="requested")
             return {"restored": True}
         raise ValueError("commande de contrôle inconnue")
+
+    def peer_status(self):
+        """Combine persisted sync history with a fresh, bounded SSH probe per peer."""
+        peers = self.state.peers_status()
+        if not peers:
+            return []
+        checked_at = time.time()
+        with ThreadPoolExecutor(max_workers=len(peers)) as pool:
+            pending = {pool.submit(self.transport.peer_status, peer["id"]): peer for peer in peers}
+            for future in as_completed(pending):
+                peer = pending[future]
+                peer["checked_at"] = checked_at
+                try:
+                    remote = future.result()
+                    peer["reachable"] = True
+                    peer["reported_node"] = remote.get("node")
+                    peer["identity_matches"] = remote.get("node") == peer["id"]
+                    peer["clock_delta_live"] = (int(remote["server_time_ns"]) - time.time_ns()) / 1_000_000_000
+                    peer["root_available"] = True
+                    peer["probe_error"] = ""
+                except Exception as exc:
+                    peer["reachable"] = False
+                    peer["reported_node"] = None
+                    peer["clock_delta_live"] = None
+                    peer["root_available"] = False
+                    peer["probe_error"] = str(exc)[:500]
+        return peers
 
     def reload_config(self):
         updated = Config.load(self.config_path)

@@ -14,7 +14,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/var/lib/dfr /var/log/dfr /run/dfr
+ReadWritePaths=/srv/dfr /etc/dfr /var/lib/dfr /var/log/dfr /run/dfr
 
 [Install]
 WantedBy=multi-user.target

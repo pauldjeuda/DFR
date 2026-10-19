@@ -32,6 +32,7 @@ jobs:
         run: |
           python -m compileall -q dfr tests
           python -m py_compile scripts/ssh-gate
+          node --check dfr/static/app.js
 
       - name: Vérifier les scripts shell
         run: |
@@ -90,6 +91,10 @@ jobs:
               lintian "$package" || echo "Lintian report emitted; consult it before distribution."
 
               apt-get install -y "./$package"
+              test "$(stat -c "%U:%G %a" /etc/dfr/dfr.conf)" = "dfr:dfr 640"
+              grep -q "^ReadWritePaths=.* /etc/dfr " /lib/systemd/system/dfr-web.service
+              grep -q "^ReadWritePaths=/srv/dfr " /lib/systemd/system/dfr-web.service
+              su -s /bin/sh dfr -c "test -w /etc/dfr/dfr.conf"
               test -x /usr/sbin/dfrd
               test -x /usr/bin/dfr-ctl
               test -x /usr/sbin/dfr-setup-ssh

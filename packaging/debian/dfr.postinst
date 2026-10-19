@@ -9,6 +9,8 @@ case "$1" in
       usermod --shell /usr/sbin/dfr-shell dfr
     fi
     install -d -o dfr -g dfr -m 0750 /var/lib/dfr /var/lib/dfr/.ssh /var/log/dfr /srv/dfr/data
+    chown dfr:dfr /etc/dfr/dfr.conf
+    chmod 0640 /etc/dfr/dfr.conf
     if [ ! -f /var/lib/dfr/.ssh/id_ed25519 ]; then
       su -s /bin/sh dfr -c 'ssh-keygen -q -t ed25519 -N "" -f /var/lib/dfr/.ssh/id_ed25519'
     fi

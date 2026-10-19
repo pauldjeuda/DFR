@@ -83,6 +83,13 @@ class Transport:
         self._clock(peer_id, result)
         return result
 
+    def peer_status(self, peer_id: str):
+        """Verify the peer's DFR command and shared root over the configured SSH gate."""
+        result = self.ssh(peer_id, ["stat", "."], timeout=6)
+        if not result.get("exists") or result.get("type") != "directory":
+            raise RuntimeError("la racine partagée distante est inaccessible")
+        return result
+
     def _clock(self, peer_id: str, result):
         if not result.get("server_time_ns"): return
         delta = (int(result["server_time_ns"]) - time.time_ns()) / 1_000_000_000

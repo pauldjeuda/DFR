@@ -8,6 +8,7 @@
 - Tombstones, corbeille, sauvegarde des versions conflictuelles, restauration.
 - Socket Unix et commandes `dfr-ctl` locales/distantes.
 - API REST Flask, interface web, export JSON/CSV.
+- Supervision locale, vérification SSH en direct et gestion web des pairs déjà approuvés ; navigateur CRUD pour les fichiers et répertoires sous la racine partagée.
 - `ssh-gate`, unités systemd, scripts de paquet Debian, CI et scénarios d'intégration.
 
 ## Validation en cours
